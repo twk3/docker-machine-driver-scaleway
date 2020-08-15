@@ -271,15 +271,15 @@ func (d *Driver) Create() (err error) {
 		CommercialType:    d.CommercialType,
 		Name:              d.name,
 		Bootscript:        d.bootscript,
-		BootType:          "bootscript",
+		BootType:          "auto",
 		AdditionalVolumes: d.volumes,
 		IP:                d.IPID,
 		EnableIPV6:        d.ipv6,
 		Env: strings.Join([]string{"AUTHORIZED_KEY",
 			strings.Replace(string(publicKey[:len(publicKey)-1]), " ", "_", -1)}, "="),
 	}
-	if d.bootscript == "" {
-		config.BootType = "local"
+	if d.bootscript != "" {
+		config.BootType = "bootscript"
 	}
 	d.ServerID, err = api.CreateServer(cl, config)
 	if err != nil {
@@ -384,19 +384,19 @@ func (d *Driver) Remove() (err error) {
 	if err != nil {
 		return
 	}
-	errRemove := cl.PostServerAction(d.ServerID, "terminate")
+	errRemove := cl.DeleteServerForce(d.ServerID)
 	for {
 		_, err = cl.GetServer(d.ServerID)
 		if err != nil {
 			break
 		}
 	}
-	if !d.IPPersistant {
-		err = cl.DeleteIP(d.IPID)
-	}
 	if errRemove != nil {
 		err = errRemove
 		return
+	}
+	if !d.IPPersistant {
+		err = cl.DeleteIP(d.IPID)
 	}
 	return
 }
